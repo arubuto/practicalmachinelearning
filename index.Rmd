@@ -1,0 +1,92 @@
+---
+title: "PracticaalMachineLearning Course Project"
+author: "Jamaluddeen Muhammad"
+date: "11/7/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## INTRODUCTION
+
+In this project, data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants is to be used. The participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E). The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har
+The goal of the project is to predict the manner in which they did the exercise.
+
+## DATA LOADING AND PROCESSING
+
+The training data for this project are available [here] (https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv) while the test data are available [here] (https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv)
+
+The training and testing csv files were downloaded and were viewed. It was noticed that missing values were marked as NA, blank, or #DIV/0!, 1ST to 7th raw were not usefull as such will be removed.
+
+```{r}
+
+train <- read.csv("~/pml-training.csv", na.strings = c("NA", "", "#DIV/0!"))
+test <- read.csv("~/pml-testing.csv", na.strings = c("NA", "", "#DIV/0!"))
+
+traindata <- train[, -c(1:7)] # removing 1st 7 columns
+testdata <- test[, -c(1:7)] # removing 1st 7 columns
+training <- traindata[,which(colSums(is.na(traindata)) == 0)] 
+testing <- testdata[,which(colSums(is.na(testdata)) == 0)]
+```
+```{R}
+library(caret)
+library(rpart)
+library(randomForest)
+library(rattle)
+```
+
+## CROSS VALIDATION
+
+Cross validation will be done by splitting the training into 70% trainset, and 30% testset.
+```{r}
+inTrain <- createDataPartition(training$classe, p=0.7, list=FALSE)
+trainset <- training[inTrain,]
+testset <- training[-inTrain,]
+```
+
+## MODELLING
+
+
+### Decision Tree Model Training and Test
+```{R}
+modfitDT <- train(classe ~.,  data=trainset, method="rpart")
+predictDT <- predict(modfitDT, newdata=testset)
+print(modfitDT$finalModel)
+fancyRpartPlot(modfitDT$finalModel)
+confusionMatrix(predictDT, as.factor(testset$classe))
+```
+
+### Random Forest model
+
+```{r}
+modfitRF <- train(classe ~.,  data=trainset, method="rf", ntree=500)
+predictRF <- predict(modfitRF, newdata=testset)
+print(modfitRF$finalModel)
+confusionMatrix(predictRF, as.factor(testset$classe))
+```
+
+### LDA
+
+```{r}
+modfitLDA <- train(classe ~.,  data=trainset, method="lda")
+predictLDA <- predict(modfitLDA, newdata=testset)
+print(modfitLDA$finalModel)
+confusionMatrix(predictLDA, as.factor(testset$classe))
+```
+Comparing the the models, it shows that Random Forest is the best as such it will be picked as the model to be used.
+
+### Expected out of sample errors
+The expected error (1-accuracy) is 0.006 or 0.6%
+
+
+## Final Prediction
+The final prediction will be done on the test data provided (testing)
+
+```{r}
+Finalprediction <- predict(modfitRF, testing)
+Finalprediction
+```
+
+
